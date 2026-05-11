@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Form } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Activity, Search, AlertCircle, CheckCircle, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, Activity, Search, AlertCircle, CheckCircle, X, Image as ImageIcon, Calendar, AlertTriangle, Stethoscope } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useDoctor } from '../context/DoctorContext';
 import { db } from '../services/firebase';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { analyzeSymptomsWithHistory, analyzeSymptomsWithImage } from '../services/groqService';
 import { generatePDFReport } from '../utils/reportGenerator';
+import { useNavigate } from 'react-router-dom';
 
 const SymptomChecker = () => {
   const { currentUser } = useAuth();
+  const { findDoctorForCondition } = useDoctor();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [symptoms, setSymptoms] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -316,7 +320,62 @@ const SymptomChecker = () => {
                         </p>
                       </div>
 
-                      <div className="d-flex gap-3">
+                      {/* Auto-Book Alert for High Risk */}
+                      {(result.riskLevel?.toLowerCase().includes('high') || result.riskLevel?.toLowerCase().includes('emergency')) && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="glass-panel p-4 mb-4"
+                          style={{ 
+                            background: result.riskLevel?.toLowerCase().includes('emergency') ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                            border: `2px solid ${result.riskLevel?.toLowerCase().includes('emergency') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                          }}
+                        >
+                          <div className="d-flex align-items-start gap-3">
+                            <AlertTriangle size={24} className={`text-${result.riskLevel?.toLowerCase().includes('emergency') ? 'danger' : 'warning'}`} style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <div>
+                              <h6 className="fw-bold mb-1">
+                                {result.riskLevel?.toLowerCase().includes('emergency') 
+                                  ? '🚨 Emergency — Immediate Medical Attention Required'
+                                  : '⚠️ High Risk — Doctor Consultation Recommended'}
+                              </h6>
+                              <p className="text-secondary small mb-3">
+                                Based on your diagnosis, we strongly recommend seeing a specialist immediately. 
+                                Click below to auto-book an appointment with an available specialist.
+                              </p>
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="d-flex align-items-center gap-2 border-0 rounded-3 px-4 py-2 fw-semibold"
+                                style={{
+                                  background: result.riskLevel?.toLowerCase().includes('emergency') 
+                                    ? 'linear-gradient(135deg, #dc2626, #ef4444)' 
+                                    : 'linear-gradient(135deg, #1a5276, #2e86c1)',
+                                  color: 'white',
+                                  boxShadow: '0 4px 15px rgba(26, 82, 118, 0.3)',
+                                }}
+                                onClick={() => navigate('/book-appointment', { 
+                                  state: { 
+                                    diagnosisData: {
+                                      topPredictions: result.topPredictions,
+                                      riskLevel: result.riskLevel,
+                                      reasoning: result.reasoning,
+                                      recommendation: result.recommendation,
+                                      symptoms: symptoms || '(Image-based analysis)',
+                                    },
+                                    autoBook: true
+                                  }
+                                })}
+                              >
+                                <Stethoscope size={16} />
+                                Auto-Book Specialist Appointment
+                              </motion.button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      <div className="d-flex gap-3 flex-wrap">
                         <button className="btn-primary-glass" onClick={resetForm}>New Assessment</button>
                         <button 
                           className="btn-secondary-glass"
@@ -331,6 +390,26 @@ const SymptomChecker = () => {
                         >
                           Save Report (PDF)
                         </button>
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="btn-secondary-glass d-flex align-items-center gap-2"
+                          onClick={() => navigate('/book-appointment', { 
+                            state: { 
+                              diagnosisData: {
+                                topPredictions: result.topPredictions,
+                                riskLevel: result.riskLevel,
+                                reasoning: result.reasoning,
+                                recommendation: result.recommendation,
+                                symptoms: symptoms || '(Image-based analysis)',
+                              },
+                              autoBook: false
+                            }
+                          })}
+                        >
+                          <Calendar size={16} />
+                          Book Appointment
+                        </motion.button>
                       </div>
                     </div>
                   </div>

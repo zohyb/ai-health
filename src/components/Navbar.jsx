@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Container, Navbar as BootstrapNavbar, Nav } from 'react-bootstrap';
-import { Activity, User, LogOut, Sun, Moon } from 'lucide-react';
+import { Activity, User, LogOut, Sun, Moon, Stethoscope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useDoctor } from '../context/DoctorContext';
 
 const Navbar = () => {
   const { currentUser, logout } = useAuth();
+  const { isDoctor, doctorProfile, doctorUser, logoutDoctor } = useDoctor();
   const navigate = useNavigate();
+  const location = useLocation();
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+  const isDoctorPage = location.pathname.startsWith('/doctor');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -27,9 +32,18 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/login');
+      navigate('/');
     } catch (error) {
       console.error('Failed to log out', error);
+    }
+  };
+
+  const handleDoctorLogout = async () => {
+    try {
+      await logoutDoctor();
+      navigate('/doctor/login');
+    } catch (error) {
+      console.error('Failed to log out doctor', error);
     }
   };
 
@@ -42,13 +56,19 @@ const Navbar = () => {
             style={{ 
               width: '45px', 
               height: '45px', 
-              background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-              boxShadow: theme === 'dark' ? '0 0 15px rgba(128, 0, 0, 0.4)' : '0 0 10px rgba(128, 0, 0, 0.2)'
+              background: isDoctorPage 
+                ? 'linear-gradient(135deg, #1a5276, #2e86c1)' 
+                : 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+              boxShadow: isDoctorPage
+                ? (theme === 'dark' ? '0 0 15px rgba(46, 134, 193, 0.4)' : '0 0 10px rgba(26, 82, 118, 0.2)')
+                : (theme === 'dark' ? '0 0 15px rgba(128, 0, 0, 0.4)' : '0 0 10px rgba(128, 0, 0, 0.2)')
             }}
           >
-            <Activity size={24} color="white" />
+            {isDoctorPage ? <Stethoscope size={24} color="white" /> : <Activity size={24} color="white" />}
           </div>
-          <span className="font-weight-bold gradient-text" style={{ fontSize: '1.5rem', fontWeight: 700 }}>AI Health Portal</span>
+          <span className={`font-weight-bold ${isDoctorPage ? 'doctor-gradient-text' : 'gradient-text'}`} style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+            {isDoctorPage ? 'Doctor Portal' : 'AI Health Portal'}
+          </span>
         </BootstrapNavbar.Brand>
         
         <BootstrapNavbar.Toggle aria-controls="basic-navbar-nav" />
@@ -66,10 +86,11 @@ const Navbar = () => {
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             </motion.button>
 
-            {currentUser && (
+            {currentUser && !isDoctorPage && (
               <>
                 <Nav.Link as={Link} to="/dashboard" className="px-3" style={{ color: 'var(--nav-text)' }}>Dashboard</Nav.Link>
                 <Nav.Link as={Link} to="/symptom-checker" className="px-3" style={{ color: 'var(--nav-text)' }}>Symptom Checker</Nav.Link>
+                <Nav.Link as={Link} to="/book-appointment" className="px-3" style={{ color: 'var(--nav-text)' }}>Appointments</Nav.Link>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <button onClick={handleLogout} className="btn-secondary-glass ms-3 d-flex align-items-center gap-2 border-0 bg-transparent" style={{ color: 'var(--nav-text)' }}>
                     <LogOut size={18} />
@@ -78,7 +99,49 @@ const Navbar = () => {
                 </motion.div>
               </>
             )}
-            {!currentUser && (
+
+            {/* Doctor Portal Link — only visible if not logged in as patient */}
+            {!isDoctorPage && !currentUser && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link 
+                  to={isDoctor ? "/doctor/dashboard" : "/doctor/login"} 
+                  className="text-decoration-none ms-3 d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #1a5276, #2e86c1)',
+                    color: 'white',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    boxShadow: '0 3px 12px rgba(26, 82, 118, 0.25)',
+                  }}
+                >
+                  <Stethoscope size={16} />
+                  <span>Doctor Portal</span>
+                </Link>
+              </motion.div>
+            )}
+
+            {isDoctorPage && doctorUser && (
+              <>
+                <Nav.Link as={Link} to="/doctor/dashboard" className="px-3" style={{ color: 'var(--nav-text)' }}>Dashboard</Nav.Link>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <button onClick={handleDoctorLogout} className="btn-secondary-glass ms-3 d-flex align-items-center gap-2 border-0 bg-transparent" style={{ color: 'var(--nav-text)' }}>
+                    <LogOut size={18} />
+                    <span>Logout</span>
+                  </button>
+                </motion.div>
+              </>
+            )}
+
+            {isDoctorPage && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link to="/" className="btn-secondary-glass text-decoration-none ms-3 d-flex align-items-center gap-2" style={{ color: 'var(--nav-text)' }}>
+                  <Activity size={16} />
+                  <span>Patient Portal</span>
+                </Link>
+              </motion.div>
+            )}
+
+            {!currentUser && !isDoctorPage && (
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Link to="/login" className="btn-primary-glass text-decoration-none ms-3 d-flex align-items-center gap-2">
                   <User size={18} />

@@ -221,3 +221,82 @@ body.light-bg {
   background-color: rgba(255, 255, 255, 0.03) !important;
 }
 
+/* ==========================================
+   Doctor Portal Styles
+   ========================================== */
+
+.doctor-gradient-text {
+  background: linear-gradient(135deg, #1a5276, #2e86c1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme='dark'] .doctor-gradient-text {
+  background: linear-gradient(135deg, #85c1e9, #5dade2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.doctor-btn-primary {
+  background: linear-gradient(135deg, #1a5276, #2e86c1);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  padding: 10px 24px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(26, 82, 118, 0.2);
+}
+
+.doctor-btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(26, 82, 118, 0.3);
+}
+
+/* Select dropdown styling for dark mode */
+[data-theme='dark'] select.input-glass {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] select.input-glass option {
+  background: #1a1a2e;
+  color: #ffffff;
+}
+
+/* Time input styling for dark mode */
+[data-theme='dark'] input[type="time"].input-glass,
+[data-theme='dark'] input[type="date"].input-glass {
+  color-scheme: dark;
+}
+
+/* Checkbox accent */
+.form-check-input:checked {
+  background-color: #2e86c1;
+  border-color: #2e86c1;
+}
+
+/* Doctor card selection animation */
+.selected-doctor-card {
+  border: 2px solid #2e86c1 !important;
+  box-shadow: 0 8px 25px rgba(26, 82, 118, 0.2) !important;
+}
+
+/* Smooth transitions for all interactive elements */
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse animation for emergency alerts */
+@keyframes emergency-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.emergency-pulse {
+  animation: emergency-pulse 2s infinite;
+}

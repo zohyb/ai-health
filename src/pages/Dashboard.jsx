@@ -9,7 +9,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { generatePDFReport } from '../utils/reportGenerator';
 
 const Dashboard = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, patientProfile } = useAuth();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +41,7 @@ const Dashboard = () => {
       <div className="d-flex justify-content-between align-items-center mb-5">
         <div>
           <h2 className="fw-bold mb-1">Patient Dashboard</h2>
-          <p className="text-secondary mb-0">Welcome back, {currentUser?.displayName || 'User'}! Here's your health overview.</p>
+          <p className="text-secondary mb-0">Welcome back, {patientProfile?.name || currentUser?.displayName || 'User'}! Here's your health overview.</p>
         </div>
         <Link to="/symptom-checker" className="btn-primary-glass text-decoration-none d-flex align-items-center gap-2">
           <Activity size={18} />

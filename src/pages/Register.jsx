@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Alert } from 'react-bootstrap';
 import { motion } from 'framer-motion';
-import { LogIn, User } from 'lucide-react';
+import { UserPlus, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const Login = () => {
-  const { loginWithGoogle, loginWithEmail, currentUser, loading } = useAuth();
+const Register = () => {
+  const { signupWithEmail, loginWithGoogle, currentUser, loading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
 
   // Redirect if already logged in
   React.useEffect(() => {
@@ -42,16 +45,29 @@ const Login = () => {
     }
   };
 
-  const handleEmailLogin = async (e) => {
+  const handleEmailRegister = async (e) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
     try {
       setError('');
       setFormLoading(true);
-      await loginWithEmail(email, password);
+      await signupWithEmail(email, password, { name, phone });
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
-      setError('Failed to log in with email and password.');
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already registered. Please sign in instead.');
+      } else {
+        setError('Failed to create account: ' + err.message);
+      }
     } finally {
       setFormLoading(false);
     }
@@ -69,15 +85,39 @@ const Login = () => {
           >
             <div className="text-center mb-5">
               <div className="bg-primary bg-opacity-25 p-3 rounded-circle d-inline-block mb-3">
-                <LogIn size={32} className="text-primary" />
+                <UserPlus size={32} className="text-primary" />
               </div>
-              <h2 className="fw-bold mb-2">Welcome Back</h2>
-              <p className="text-secondary">Sign in to access your health dashboard</p>
+              <h2 className="fw-bold mb-2">Create Account</h2>
+              <p className="text-secondary">Join the AI Health Portal</p>
             </div>
 
             {error && <Alert variant="danger">{error}</Alert>}
 
-            <Form onSubmit={handleEmailLogin}>
+            <Form onSubmit={handleEmailRegister}>
+              <Form.Group className="mb-4">
+                <Form.Label className="text-secondary small fw-semibold text-uppercase">Full Name</Form.Label>
+                <input 
+                  type="text" 
+                  className="input-glass" 
+                  placeholder="John Doe" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-4">
+                <Form.Label className="text-secondary small fw-semibold text-uppercase">Phone Number</Form.Label>
+                <input 
+                  type="tel" 
+                  className="input-glass" 
+                  placeholder="+1 234 567 8900" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </Form.Group>
+
               <Form.Group className="mb-4">
                 <Form.Label className="text-secondary small fw-semibold text-uppercase">Email Address</Form.Label>
                 <input 
@@ -90,17 +130,26 @@ const Login = () => {
                 />
               </Form.Group>
 
-              <Form.Group className="mb-5">
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <Form.Label className="text-secondary small fw-semibold text-uppercase mb-0">Password</Form.Label>
-                  <a href="#" className="text-primary small text-decoration-none">Forgot password?</a>
-                </div>
+              <Form.Group className="mb-4">
+                <Form.Label className="text-secondary small fw-semibold text-uppercase">Password</Form.Label>
                 <input 
                   type="password" 
                   className="input-glass" 
                   placeholder="••••••••" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-5">
+                <Form.Label className="text-secondary small fw-semibold text-uppercase">Confirm Password</Form.Label>
+                <input 
+                  type="password" 
+                  className="input-glass" 
+                  placeholder="••••••••" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
               </Form.Group>
@@ -112,7 +161,7 @@ const Login = () => {
                 type="submit"
                 disabled={formLoading}
               >
-                Sign In
+                Sign Up
               </motion.button>
               
               <div className="text-center my-4 text-secondary small position-relative">
@@ -129,11 +178,11 @@ const Login = () => {
                 disabled={formLoading}
               >
                 <User size={20} />
-                Sign in with Google
+                Sign up with Google
               </motion.button>
 
               <p className="text-center text-secondary small mb-0">
-                Don't have an account? <Link to="/register" className="text-primary text-decoration-none fw-semibold">Create one</Link>
+                Already have an account? <Link to="/login" className="text-primary text-decoration-none fw-semibold">Sign in</Link>
               </p>
             </Form>
           </motion.div>
@@ -143,4 +192,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

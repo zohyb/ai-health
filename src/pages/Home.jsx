@@ -30,15 +30,15 @@ const Home = () => {
             
             <div className="d-flex flex-wrap gap-3">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link to="/symptom-checker" className="btn-primary-glass text-decoration-none d-flex align-items-center gap-2 py-3 px-4" style={{ fontSize: '1.1rem' }}>
+                <Link to="/login" className="btn-primary-glass text-decoration-none d-flex align-items-center gap-2 py-3 px-4" style={{ fontSize: '1.1rem' }}>
                   <Activity size={20} />
-                  Start Assessment
+                  Patient Login
                   <ArrowRight size={18} />
                 </Link>
               </motion.div>
               
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link to="/login" className="btn-secondary-glass text-decoration-none d-flex align-items-center gap-2 py-3 px-4" style={{ fontSize: '1.1rem' }}>
+                <Link to="/register" className="btn-secondary-glass text-decoration-none d-flex align-items-center gap-2 py-3 px-4" style={{ fontSize: '1.1rem' }}>
                   <UserPlus size={20} />
                   Create Profile
                 </Link>

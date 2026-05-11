@@ -4,9 +4,10 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, limit, getDocs } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 
 const AuthContext = createContext();
@@ -15,45 +16,117 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [patientProfile, setPatientProfile] = useState(null);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Sign in with Google
+  // Sign in with Google (popup)
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
+    sessionStorage.setItem('portalRole', 'patient');
     await saveUserToFirestore(result.user);
     return result;
   };
 
-  // Sign in with Email/Password (Assuming they might register elsewhere)
-  const loginWithEmail = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
+  // Sign in with Email/Password
+  const loginWithEmail = async (email, password) => {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    sessionStorage.setItem('portalRole', 'patient');
+    
+    // Fetch profile and check if complete
+    const userSnap = await getDoc(doc(db, 'users', result.user.uid));
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      setPatientProfile(data);
+      setNeedsProfileSetup(!data.phone || !data.name || data.name === 'Anonymous User');
+    } else {
+      await saveUserToFirestore(result.user);
+    }
+    return result;
+  };
+
+  // Sign up with Email/Password
+  const signupWithEmail = async (email, password, additionalData) => {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    sessionStorage.setItem('portalRole', 'patient');
+    
+    // For detailed register form
+    const userRef = doc(db, 'users', result.user.uid);
+    const newProfile = {
+      uid: result.user.uid,
+      name: additionalData?.name || result.user.displayName || '',
+      email: result.user.email,
+      phone: additionalData?.phone || '',
+      createdAt: new Date().toISOString()
+    };
+    await setDoc(userRef, newProfile, { merge: true });
+    setPatientProfile(newProfile);
+    
+    if (!newProfile.name || !newProfile.phone) {
+      setNeedsProfileSetup(true);
+    } else {
+      setNeedsProfileSetup(false);
+    }
+    
+    return result;
   };
 
   const logout = () => {
+    sessionStorage.removeItem('portalRole');
+    setPatientProfile(null);
+    setNeedsProfileSetup(false);
     return signOut(auth);
   };
 
-  // Save user profile to Firestore
+  // Save user profile to Firestore (for Google Auth mostly)
   const saveUserToFirestore = async (user) => {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      await setDoc(userRef, {
+      const newProfile = {
         uid: user.uid,
-        name: user.displayName || 'Anonymous User',
+        name: user.displayName || '',
         email: user.email,
+        phone: '',
         createdAt: new Date().toISOString()
-      }, { merge: true });
+      };
+      await setDoc(userRef, newProfile, { merge: true });
+      setPatientProfile(newProfile);
+      setNeedsProfileSetup(true); // Google users need to complete profile for phone
+    } else {
+      const data = userSnap.data();
+      setPatientProfile(data);
+      setNeedsProfileSetup(!data.phone || !data.name || data.name === 'Anonymous User');
     }
+  };
+
+  const completePatientProfile = async (profileData) => {
+    if (!currentUser) throw new Error("No user logged in");
+    
+    const userRef = doc(db, 'users', currentUser.uid);
+    await setDoc(userRef, {
+      name: profileData.name,
+      phone: profileData.phone,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    
+    setPatientProfile(prev => ({...prev, ...profileData}));
+    setNeedsProfileSetup(false);
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
+      const portalRole = sessionStorage.getItem('portalRole');
+      
+      if (user && portalRole === 'patient') {
+        setCurrentUser(user);
         await saveUserToFirestore(user);
+      } else {
+        setCurrentUser(null);
+        setPatientProfile(null);
+        setNeedsProfileSetup(false);
       }
       setLoading(false);
     });
@@ -63,9 +136,13 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     currentUser,
+    patientProfile,
+    needsProfileSetup,
     loginWithGoogle,
     loginWithEmail,
-    logout
+    signupWithEmail,
+    logout,
+    completePatientProfile
   };
 
   return (
