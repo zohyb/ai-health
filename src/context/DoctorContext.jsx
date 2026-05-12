@@ -2,13 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
   signOut,
   onAuthStateChanged
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, getDocs, query, where, updateDoc, addDoc } from 'firebase/firestore';
-import { auth, db } from '../services/firebase';
+import { doctorAuth, doctorDb } from '../services/firebase';
 
 const DoctorContext = createContext();
 
@@ -23,46 +21,19 @@ export const DoctorProvider = ({ children }) => {
 
   // Email/Password Signup
   const signupDoctor = async (email, password) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    sessionStorage.setItem('portalRole', 'doctor');
+    const result = await createUserWithEmailAndPassword(doctorAuth, email, password);
     setDoctorUser(result.user);
     setNeedsOnboarding(true);
     return result;
   };
 
-  // Google Auth (popup)
-  const loginWithGoogleDoctor = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    sessionStorage.setItem('portalRole', 'doctor');
-    const user = result.user;
-    
-    try {
-      const doctorDoc = await getDoc(doc(db, 'doctors', user.uid));
-      if (doctorDoc.exists()) {
-        setDoctorProfile(doctorDoc.data());
-        setIsDoctor(true);
-        setNeedsOnboarding(false);
-      } else {
-        setNeedsOnboarding(true);
-      }
-      setDoctorUser(user);
-    } catch (err) {
-      console.error(err);
-      setNeedsOnboarding(true);
-      setDoctorUser(user);
-    }
-    return result;
-  };
-
   // Login as doctor
   const loginDoctor = async (email, password) => {
-    const result = await signInWithEmailAndPassword(auth, email, password);
-    sessionStorage.setItem('portalRole', 'doctor');
+    const result = await signInWithEmailAndPassword(doctorAuth, email, password);
     const user = result.user;
     
     try {
-      const doctorDoc = await getDoc(doc(db, 'doctors', user.uid));
+      const doctorDoc = await getDoc(doc(doctorDb, 'doctors', user.uid));
       if (doctorDoc.exists()) {
         setDoctorUser(user);
         setDoctorProfile(doctorDoc.data());
@@ -98,7 +69,7 @@ export const DoctorProvider = ({ children }) => {
       createdAt: new Date().toISOString()
     };
 
-    await setDoc(doc(db, 'doctors', doctorUser.uid), doctorData);
+    await setDoc(doc(doctorDb, 'doctors', doctorUser.uid), doctorData);
     setDoctorProfile(doctorData);
     setIsDoctor(true);
     setNeedsOnboarding(false);
@@ -106,18 +77,17 @@ export const DoctorProvider = ({ children }) => {
 
   // Logout
   const logoutDoctor = () => {
-    sessionStorage.removeItem('portalRole');
     setDoctorProfile(null);
     setDoctorUser(null);
     setIsDoctor(false);
     setNeedsOnboarding(false);
-    return signOut(auth);
+    return signOut(doctorAuth);
   };
 
   // Get all registered doctors (for patient browsing)
   const getAllDoctors = async () => {
     try {
-      const q = query(collection(db, 'doctors'));
+      const q = query(collection(doctorDb, 'doctors'));
       const snapshot = await getDocs(q);
       return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err) {
@@ -130,7 +100,7 @@ export const DoctorProvider = ({ children }) => {
   const getDoctorsBySpecialization = async (specialization) => {
     try {
       const q = query(
-        collection(db, 'doctors'),
+        collection(doctorDb, 'doctors'),
         where('specialization', '==', specialization),
         where('isAvailable', '==', true)
       );
@@ -144,7 +114,7 @@ export const DoctorProvider = ({ children }) => {
 
   // Book an appointment
   const bookAppointment = async (appointmentData) => {
-    const docRef = await addDoc(collection(db, 'appointments'), {
+    const docRef = await addDoc(collection(doctorDb, 'appointments'), {
       ...appointmentData,
       status: 'pending',
       createdAt: new Date().toISOString()
@@ -156,7 +126,7 @@ export const DoctorProvider = ({ children }) => {
   const getDoctorAppointments = async (doctorId) => {
     try {
       const q = query(
-        collection(db, 'appointments'),
+        collection(doctorDb, 'appointments'),
         where('doctorId', '==', doctorId)
       );
       const snapshot = await getDocs(q);
@@ -171,7 +141,7 @@ export const DoctorProvider = ({ children }) => {
 
   // Update appointment status
   const updateAppointmentStatus = async (appointmentId, status) => {
-    await updateDoc(doc(db, 'appointments', appointmentId), { status });
+    await updateDoc(doc(doctorDb, 'appointments', appointmentId), { status });
   };
 
   // Find matching doctor for a diagnosis specialization
@@ -262,13 +232,13 @@ export const DoctorProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      const portalRole = sessionStorage.getItem('portalRole');
-      
-      if (user && portalRole === 'doctor') {
+    // This only fires for doctor auth (separate 'doctor-app' Firebase instance)
+    // Patient auth is on the default instance so it won't interfere
+    const unsubscribe = onAuthStateChanged(doctorAuth, async (user) => {
+      if (user) {
         setDoctorUser(user);
         try {
-          const doctorDoc = await getDoc(doc(db, 'doctors', user.uid));
+          const doctorDoc = await getDoc(doc(doctorDb, 'doctors', user.uid));
           if (doctorDoc.exists()) {
             setDoctorProfile(doctorDoc.data());
             setIsDoctor(true);
@@ -303,7 +273,6 @@ export const DoctorProvider = ({ children }) => {
     needsOnboarding,
     loading,
     signupDoctor,
-    loginWithGoogleDoctor,
     loginDoctor,
     logoutDoctor,
     completeOnboarding,

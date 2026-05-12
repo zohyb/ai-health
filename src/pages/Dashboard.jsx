@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { motion } from 'framer-motion';
-import { Clock, Activity, FileText, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Clock, Activity, FileText, AlertTriangle, Calendar } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../services/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -10,6 +10,7 @@ import { generatePDFReport } from '../utils/reportGenerator';
 
 const Dashboard = () => {
   const { currentUser, patientProfile } = useAuth();
+  const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,7 +101,7 @@ const Dashboard = () => {
                 <th className="py-4 border-0 fw-bold">Symptoms</th>
                 <th className="py-4 border-0 fw-bold">Prediction</th>
                 <th className="py-4 border-0 fw-bold">Risk</th>
-                <th className="py-4 px-4 border-0 fw-bold text-end">Action</th>
+                <th className="py-4 px-4 border-0 fw-bold text-end">Actions</th>
               </tr>
             </thead>
             <tbody style={{ borderTop: 'none' }}>
@@ -125,13 +126,35 @@ const Dashboard = () => {
                     </span>
                   </td>
                   <td className="py-4 px-4 text-end align-middle">
-                    <button 
-                      className="btn-secondary-glass btn-sm px-3"
-                      style={{ fontSize: '0.85rem' }}
-                      onClick={() => generatePDFReport(record)}
-                    >
-                      Download
-                    </button>
+                    <div className="d-flex gap-2 justify-content-end">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="btn-primary-glass btn-sm text-decoration-none d-flex align-items-center gap-2"
+                        onClick={() => navigate('/book-appointment', {
+                          state: {
+                            diagnosisData: {
+                              topPredictions: record.predictions,
+                              riskLevel: record.riskLevel,
+                              reasoning: record.reasoning || '',
+                              recommendation: record.recommendation || '',
+                              symptoms: record.symptoms,
+                            },
+                            autoBook: false
+                          }
+                        })}
+                      >
+                        <Calendar size={13} />
+                        <span>Book</span>
+                      </motion.button>
+                      <button 
+                        className="btn-secondary-glass btn-sm px-3"
+                        style={{ fontSize: '0.85rem' }}
+                        onClick={() => generatePDFReport(record)}
+                      >
+                        Download
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

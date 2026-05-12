@@ -12,10 +12,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Patient app (default instance)
 const app = initializeApp(firebaseConfig);
-
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Doctor app (separate named instance — completely independent auth state)
+// This ensures patient and doctor logins don't interfere across tabs
+const doctorApp = initializeApp(firebaseConfig, 'doctor-app');
+export const doctorAuth = getAuth(doctorApp);
+export const doctorDb = getFirestore(doctorApp);
 
 export default app;

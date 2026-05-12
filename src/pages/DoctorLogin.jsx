@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDoctor } from '../context/DoctorContext';
 
 const DoctorLogin = () => {
-  const { signupDoctor, loginDoctor, loginWithGoogleDoctor, doctorUser, isDoctor, needsOnboarding, loading } = useDoctor();
+  const { signupDoctor, loginDoctor, doctorUser, isDoctor, needsOnboarding, loading } = useDoctor();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('login');
   const [error, setError] = useState('');
@@ -64,19 +64,6 @@ const DoctorLogin = () => {
     }
   };
 
-  const handleGoogleAuth = async () => {
-    try {
-      setError('');
-      setFormLoading(true);
-      await loginWithGoogleDoctor();
-    } catch (err) {
-      console.error(err);
-      setError(`Google Auth failed: ${err.message}`);
-      setFormLoading(false);
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   return (
     <Container className="py-5">
@@ -186,25 +173,6 @@ const DoctorLogin = () => {
                   )}
                 </motion.button>
               </Form>
-
-              <div className="position-relative my-4 text-center">
-                <hr style={{ borderColor: 'var(--glass-border)' }} />
-                <span className="position-absolute top-50 start-50 translate-middle px-3 small text-secondary" style={{ background: 'var(--bg-primary)' }}>
-                  OR
-                </span>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleGoogleAuth}
-                disabled={formLoading}
-                className="w-100 py-3 d-flex justify-content-center align-items-center gap-2 rounded-3 fw-semibold bg-white text-dark border-0"
-                style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
-              >
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: '20px' }} />
-                Continue with Google
-              </motion.button>
             </div>
           </motion.div>
         </Col>

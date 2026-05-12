@@ -126,15 +126,6 @@ const DoctorDashboard = () => {
             </div>
           </div>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleLogout}
-          className="btn-secondary-glass d-flex align-items-center gap-2"
-        >
-          <LogOut size={18} />
-          Logout
-        </motion.button>
       </div>
 
       {/* Stats Cards */}

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Alert } from 'react-bootstrap';
 import { motion } from 'framer-motion';
-import { LogIn, User } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
-  const { loginWithGoogle, loginWithEmail, currentUser, loading } = useAuth();
+  const { loginWithEmail, currentUser, loading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
@@ -28,19 +28,6 @@ const Login = () => {
     );
   }
 
-  const handleGoogleLogin = async () => {
-    try {
-      setError('');
-      setFormLoading(true);
-      await loginWithGoogle();
-      navigate('/dashboard');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to log in with Google. Check console for details.');
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -113,23 +100,6 @@ const Login = () => {
                 disabled={formLoading}
               >
                 Sign In
-              </motion.button>
-              
-              <div className="text-center my-4 text-secondary small position-relative">
-                <span className="bg-dark px-2 position-relative z-1" style={{ background: 'var(--bg-color)' }}>OR CONTINUE WITH</span>
-                <hr className="position-absolute top-50 start-0 w-100 m-0 z-0" style={{ borderColor: 'var(--glass-border)' }} />
-              </div>
-
-              <motion.button 
-                whileHover={{ scale: 1.02 }} 
-                whileTap={{ scale: 0.98 }}
-                className="btn-secondary-glass w-100 py-3 mb-4 d-flex justify-content-center align-items-center gap-2"
-                type="button"
-                onClick={handleGoogleLogin}
-                disabled={formLoading}
-              >
-                <User size={20} />
-                Sign in with Google
               </motion.button>
 
               <p className="text-center text-secondary small mb-0">

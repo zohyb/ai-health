@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
   signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword
@@ -20,19 +18,9 @@ export const AuthProvider = ({ children }) => {
   const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Sign in with Google (popup)
-  const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    sessionStorage.setItem('portalRole', 'patient');
-    await saveUserToFirestore(result.user);
-    return result;
-  };
-
   // Sign in with Email/Password
   const loginWithEmail = async (email, password) => {
     const result = await signInWithEmailAndPassword(auth, email, password);
-    sessionStorage.setItem('portalRole', 'patient');
     
     // Fetch profile and check if complete
     const userSnap = await getDoc(doc(db, 'users', result.user.uid));
@@ -49,7 +37,6 @@ export const AuthProvider = ({ children }) => {
   // Sign up with Email/Password
   const signupWithEmail = async (email, password, additionalData) => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
-    sessionStorage.setItem('portalRole', 'patient');
     
     // For detailed register form
     const userRef = doc(db, 'users', result.user.uid);
@@ -73,13 +60,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    sessionStorage.removeItem('portalRole');
     setPatientProfile(null);
     setNeedsProfileSetup(false);
     return signOut(auth);
   };
 
-  // Save user profile to Firestore (for Google Auth mostly)
+  // Save user profile to Firestore
   const saveUserToFirestore = async (user) => {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
@@ -94,7 +80,7 @@ export const AuthProvider = ({ children }) => {
       };
       await setDoc(userRef, newProfile, { merge: true });
       setPatientProfile(newProfile);
-      setNeedsProfileSetup(true); // Google users need to complete profile for phone
+      setNeedsProfileSetup(true);
     } else {
       const data = userSnap.data();
       setPatientProfile(data);
@@ -117,10 +103,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // This only fires for patient auth (default Firebase app instance)
+    // Doctor auth is on a separate instance so it won't interfere
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      const portalRole = sessionStorage.getItem('portalRole');
-      
-      if (user && portalRole === 'patient') {
+      if (user) {
         setCurrentUser(user);
         await saveUserToFirestore(user);
       } else {
@@ -138,7 +124,6 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     patientProfile,
     needsProfileSetup,
-    loginWithGoogle,
     loginWithEmail,
     signupWithEmail,
     logout,

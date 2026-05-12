@@ -132,14 +132,7 @@ const Navbar = () => {
               </>
             )}
 
-            {isDoctorPage && (
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link to="/" className="btn-secondary-glass text-decoration-none ms-3 d-flex align-items-center gap-2" style={{ color: 'var(--nav-text)' }}>
-                  <Activity size={16} />
-                  <span>Patient Portal</span>
-                </Link>
-              </motion.div>
-            )}
+
 
             {!currentUser && !isDoctorPage && (
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
